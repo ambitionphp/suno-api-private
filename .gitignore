@@ -35,17 +35,17 @@ yarn-error.log*
 
 # Cookie extraction scripts output
 /tmp/
+*.log
 
-# Test and setup scripts (may contain sensitive data)
+# Test scripts (may contain sensitive data in local testing)
 test-clerk-api.js
 test-cookie.js
 get-cookie*.js
 extract-token*.js
-setup-cookie.js
 manual-extract.sh
 MANUAL_COOKIE_GUIDE.md
-/tmp/*.log
-*.log
+
+# Keep setup-cookie.js (it's a tool, no sensitive data)
 
 # vercel
 .vercel

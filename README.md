@@ -1,361 +1,208 @@
-<div align="center">
-  <h1 align="center">
-      Suno AI API
-  </h1>
-  <p>Use API to call the music generation AI of Suno.ai and easily integrate it into agents like GPTs.</p>
-  <p>👉 We update quickly, please star.</p>
-</div>
-<p align="center">
-  <a target="_blank" href="./README.md">English</a> 
-  | <a target="_blank" href="./README_CN.md">简体中文</a> 
-  | <a target="_blank" href="./README_RU.md">русский</a> 
-  | <a target="_blank" href="https://suno.gcui.ai">Demo</a> 
-  | <a target="_blank" href="https://suno.gcui.ai/docs">Docs</a> 
-  | <a target="_blank" href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fgcui-art%2Fsuno-api&env=SUNO_COOKIE,TWOCAPTCHA_KEY,BROWSER,BROWSER_GHOST_CURSOR,BROWSER_LOCALE,BROWSER_HEADLESS&project-name=suno-api&repository-name=suno-api">Deploy with Vercel</a> 
-</p>
-<p align="center">
-  <a href="https://www.producthunt.com/products/gcui-art-suno-api-open-source-sunoai-api/reviews?utm_source=badge-product_review&utm_medium=badge&utm_souce=badge-gcui&#0045;art&#0045;suno&#0045;api&#0045;open&#0045;source&#0045;sunoai&#0045;api" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/product_review.svg?product_id=577408&theme=light" alt="gcui&#0045;art&#0047;suno&#0045;api&#0058;Open&#0045;source&#0032;SunoAI&#0032;API - Use&#0032;API&#0032;to&#0032;call&#0032;the&#0032;music&#0032;generation&#0032;AI&#0032;of&#0032;suno&#0046;ai&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-</p>
+# Suno API - JWT Token Support
 
-> 🔥 Check out my new project: [ReadPo - 10x Speed Up Your Reading and Writing](https://readpo.com?utm_source=github&utm_medium=suno-ai)
+> **基于 [gcui-art/suno-api](https://github.com/gcui-art/suno-api) 的改进版本**
+> 主要改进：支持直接使用 JWT Token 进行认证，解决 Clerk session 失效问题
 
-![suno-api banner](https://github.com/gcui-art/suno-api/blob/main/public/suno-banner.png)
+## 🎯 为什么需要这个版本？
 
-## Introduction
+**问题**：原版 suno-api 依赖 Clerk session 进行认证，但 Clerk API 经常返回空 session（`sessions: []`），导致 401 Unauthorized 错误。
 
-Suno is an amazing AI music service. Although the official API is not yet available, we couldn't wait to integrate its capabilities somewhere.
+**解决方案**：本版本支持直接从浏览器提取 JWT Token，跳过 Clerk 认证流程，稳定可靠。
 
-We discovered that some users have similar needs, so we decided to open-source this project, hoping you'll like it.
+## ✨ 主要改进
 
-This implementation uses the paid [2Captcha](https://2captcha.com/about) service (a.k.a. ruCaptcha) to solve the hCaptcha challenges automatically and does not use any already made closed-source paid Suno API implementations.
+- ✅ **支持直接使用 JWT Token**：从浏览器 Network 请求中提取 token，不再依赖 Clerk session
+- ✅ **自动检测认证方式**：如果 cookie 中有 `__session` token，自动使用；否则回退到 Clerk 认证
+- ✅ **更好的隐私保护**：增强 `.gitignore` 规则，防止敏感数据泄露
+- ✅ **交互式配置脚本**：提供 `setup-cookie.js` 简化 token 配置流程
 
-## Demo
+## 🚀 快速开始
 
-We have deployed an example bound to a free Suno account, so it has daily usage limits, but you can see how it runs:
-[suno.gcui.ai](https://suno.gcui.ai)
-
-## Features
-
-- Perfectly implements the creation API from suno.ai.
-- Automatically keep the account active.
-- Solve CAPTCHAs automatically using [2Captcha](https://2captcha.com) and [Playwright](https://playwright.dev) with [rebrowser-patches](https://github.com/rebrowser/rebrowser-patches).
-- Compatible with the format of OpenAI’s `/v1/chat/completions` API.
-- Supports Custom Mode.
-- One-click deployment to [Vercel](#deploy-to-vercel) & [Docker](#docker).
-- In addition to the standard API, it also adapts to the API Schema of Agent platforms like GPTs and Coze, so you can use it as a tool/plugin/Action for LLMs and integrate it into any AI Agent.
-- Permissive open-source license, allowing you to freely integrate and modify.
-
-## Getting Started
-
-### 1. Obtain the cookie of your Suno account
-
-1. Head over to [suno.com/create](https://suno.com/create) using your browser.
-2. Open up the browser console: hit `F12` or access the `Developer Tools`.
-3. Navigate to the `Network` tab.
-4. Give the page a quick refresh.
-5. Identify the latest request that includes the keyword `?__clerk_api_version`.
-6. Click on it and switch over to the `Header` tab.
-7. Locate the `Cookie` section, hover your mouse over it, and copy the value of the Cookie.
-
-![get cookie](https://github.com/gcui-art/suno-api/blob/main/public/get-cookie-demo.gif)
-
-### 2. Register on 2Captcha and top up your balance
-[2Captcha](https://2captcha.com/about) is a paid CAPTCHA solving service that uses real workers to solve the CAPTCHA and has high accuracy. It is needed because of Suno constantly requesting hCaptcha solving that currently isn't possible for free by any means.
-
-[Create](https://2captcha.com/auth/register?userType=customer) a new 2Captcha account, [top up](https://2captcha.com/pay) your balance and [get your API key](https://2captcha.com/enterpage#recognition).
-
-> [!NOTE]
-> If you are located in Russia or Belarus, use the [ruCaptcha](https://rucaptcha.com) interface instead of 2Captcha. It's the same service, but it supports payments from those countries.
-
-> [!TIP]
-> If you want as few CAPTCHAs as possible, it is recommended to use a macOS system. macOS systems usually get fewer CAPTCHAs than Linux and Windows—this is due to its unpopularity in the web scraping industry. Running suno-api on Windows and Linux will work, but in some cases, you could get a pretty large number of CAPTCHAs.
-
-### 3. Clone and deploy this project
-
-You can choose your preferred deployment method:
-
-#### Deploy to Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fgcui-art%2Fsuno-api&env=SUNO_COOKIE,TWOCAPTCHA_KEY,BROWSER,BROWSER_GHOST_CURSOR,BROWSER_LOCALE,BROWSER_HEADLESS&project-name=suno-api&repository-name=suno-api)
-
-#### Run locally
+### 1. 安装依赖
 
 ```bash
-git clone https://github.com/gcui-art/suno-api.git
-cd suno-api
+git clone https://github.com/joeseesun/suno-api-private.git
+cd suno-api-private
 npm install
 ```
-#### Docker
->[!IMPORTANT]
-> GPU acceleration will be disabled in Docker. If you have a slow CPU, it is recommended to [deploy locally](#run-locally).
 
-Alternatively, you can use [Docker Compose](https://docs.docker.com/compose/). However, follow the step below before running.
+### 2. 获取 JWT Token（重要！）
 
-```bash
-docker compose build && docker compose up
-```
+**方法一：使用交互式脚本（推荐）**
 
-### 4. Configure suno-api
+1. 在浏览器中访问 https://suno.com/create 并登录
+2. 按 `F12` 打开开发者工具
+3. 切换到 **Network** 标签
+4. 在页面上点击输入框（触发 API 请求）
+5. 在 Network 列表中找到 `studio-api.prod.suno.com` 的请求
+6. 点击请求 → **Headers** → **Request Headers**
+7. 复制两个值：
+   - `authorization: Bearer xxx` → 复制 `Bearer` 后面的 token
+   - `cookie: xxx` → 复制整个 cookie 字符串
 
-- If deployed to Vercel, please add the environment variables in the Vercel dashboard.
-
-- If you’re running this locally, be sure to add the following to your `.env` file:
-#### Environment variables
-- `SUNO_COOKIE` — the `Cookie` header you obtained in the first step.
-- `TWOCAPTCHA_KEY` — your 2Captcha API key from the second step.
-- `BROWSER` — the name of the browser that is going to be used to solve the CAPTCHA. Only `chromium` and `firefox` supported.
-- `BROWSER_GHOST_CURSOR` — use ghost-cursor-playwright to simulate smooth mouse movements. Please note that it doesn't seem to make any difference in the rate of CAPTCHAs, so you can set it to `false`. Retained for future testing.
-- `BROWSER_LOCALE` — the language of the browser. Using either `en` or `ru` is recommended, since those have the most workers on 2Captcha. [List of supported languages](https://2captcha.com/2captcha-api#language)
-- `BROWSER_HEADLESS` — run the browser without the window. You probably want to set this to `true`.
-```bash
-SUNO_COOKIE=<…>
-TWOCAPTCHA_KEY=<…>
-BROWSER=chromium
-BROWSER_GHOST_CURSOR=false
-BROWSER_LOCALE=en
-BROWSER_HEADLESS=true
-```
-
-### 5. Run suno-api
-
-- If you’ve deployed to Vercel:
-  - Please click on Deploy in the Vercel dashboard and wait for the deployment to be successful.
-  - Visit the `https://<vercel-assigned-domain>/api/get_limit` API for testing.
-- If running locally:
-  - Run `npm run dev`.
-  - Visit the `http://localhost:3000/api/get_limit` API for testing.
-- If the following result is returned:
-
-```json
-{
-  "credits_left": 50,
-  "period": "day",
-  "monthly_limit": 50,
-  "monthly_usage": 50
-}
-```
-
-it means the program is running normally.
-
-### 6. Use Suno API
-
-You can check out the detailed API documentation at :
-[suno.gcui.ai/docs](https://suno.gcui.ai/docs)
-
-## API Reference
-
-Suno API currently mainly implements the following APIs:
+8. 运行配置脚本：
 
 ```bash
-- `/api/generate`: Generate music
-- `/v1/chat/completions`: Generate music - Call the generate API in a format that works with OpenAI’s API.
-- `/api/custom_generate`: Generate music (Custom Mode, support setting lyrics, music style, title, etc.)
-- `/api/generate_lyrics`: Generate lyrics based on prompt
-- `/api/get`: Get music information based on the id. Use “,” to separate multiple ids.
-    If no IDs are provided, all music will be returned.
-- `/api/get_limit`: Get quota Info
-- `/api/extend_audio`: Extend audio length
-- `/api/generate_stems`: Make stem tracks (separate audio and music track)
-- `/api/get_aligned_lyrics`: Get list of timestamps for each word in the lyrics
-- `/api/clip`: Get clip information based on ID passed as query parameter `id`
-- `/api/concat`: Generate the whole song from extensions
+node setup-cookie.js
 ```
 
-You can also specify the cookies in the `Cookie` header of your request, overriding the default cookies in the `SUNO_COOKIE` environment variable. This comes in handy when, for example, you want to use multiple free accounts at the same time.
+按提示粘贴 JWT token 和 cookies 即可。
 
-For more detailed documentation, please check out the demo site:
-[suno.gcui.ai/docs](https://suno.gcui.ai/docs)
+**方法二：手动配置**
 
-## API Integration Code Examples
+创建 `.env` 文件：
 
-### Python
-
-```python
-import time
-import requests
-
-# replace with your suno-api URL
-base_url = 'http://localhost:3000'
-
-
-def custom_generate_audio(payload):
-    url = f"{base_url}/api/custom_generate"
-    response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-    return response.json()
-
-
-def extend_audio(payload):
-    url = f"{base_url}/api/extend_audio"
-    response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-    return response.json()
-
-def generate_audio_by_prompt(payload):
-    url = f"{base_url}/api/generate"
-    response = requests.post(url, json=payload, headers={'Content-Type': 'application/json'})
-    return response.json()
-
-
-def get_audio_information(audio_ids):
-    url = f"{base_url}/api/get?ids={audio_ids}"
-    response = requests.get(url)
-    return response.json()
-
-
-def get_quota_information():
-    url = f"{base_url}/api/get_limit"
-    response = requests.get(url)
-    return response.json()
-
-def get_clip(clip_id):
-    url = f"{base_url}/api/clip?id={clip_id}"
-    response = requests.get(url)
-    return response.json()
-
-def generate_whole_song(clip_id):
-    payload = {"clip_id": clip_id}
-    url = f"{base_url}/api/concat"
-    response = requests.post(url, json=payload)
-    return response.json()
-
-
-if __name__ == '__main__':
-    data = generate_audio_by_prompt({
-        "prompt": "A popular heavy metal song about war, sung by a deep-voiced male singer, slowly and melodiously. The lyrics depict the sorrow of people after the war.",
-        "make_instrumental": False,
-        "wait_audio": False
-    })
-
-    ids = f"{data[0]['id']},{data[1]['id']}"
-    print(f"ids: {ids}")
-
-    for _ in range(60):
-        data = get_audio_information(ids)
-        if data[0]["status"] == 'streaming':
-            print(f"{data[0]['id']} ==> {data[0]['audio_url']}")
-            print(f"{data[1]['id']} ==> {data[1]['audio_url']}")
-            break
-        # sleep 5s
-        time.sleep(5)
-
+```bash
+SUNO_COOKIE=__session=<你的JWT_TOKEN>; __client=xxx; ajs_anonymous_id=xxx; ...
 ```
 
-### JavaScript
+**重要**：确保 `__session=` 后面是从 Authorization header 提取的 JWT token！
 
-```js
-const axios = require("axios");
+### 3. 启动服务
 
-// replace your vercel domain
-const baseUrl = "http://localhost:3000";
-
-async function customGenerateAudio(payload) {
-  const url = `${baseUrl}/api/custom_generate`;
-  const response = await axios.post(url, payload, {
-    headers: { "Content-Type": "application/json" },
-  });
-  return response.data;
-}
-
-async function generateAudioByPrompt(payload) {
-  const url = `${baseUrl}/api/generate`;
-  const response = await axios.post(url, payload, {
-    headers: { "Content-Type": "application/json" },
-  });
-  return response.data;
-}
-
-async function extendAudio(payload) {
-  const url = `${baseUrl}/api/extend_audio`;
-  const response = await axios.post(url, payload, {
-    headers: { "Content-Type": "application/json" },
-  });
-  return response.data;
-}
-
-async function getAudioInformation(audioIds) {
-  const url = `${baseUrl}/api/get?ids=${audioIds}`;
-  const response = await axios.get(url);
-  return response.data;
-}
-
-async function getQuotaInformation() {
-  const url = `${baseUrl}/api/get_limit`;
-  const response = await axios.get(url);
-  return response.data;
-}
-
-async function getClipInformation(clipId) {
-  const url = `${baseUrl}/api/clip?id=${clipId}`;
-  const response = await axios.get(url);
-  return response.data;
-}
-
-async function main() {
-  const data = await generateAudioByPrompt({
-    prompt:
-      "A popular heavy metal song about war, sung by a deep-voiced male singer, slowly and melodiously. The lyrics depict the sorrow of people after the war.",
-    make_instrumental: false,
-    wait_audio: false,
-  });
-
-  const ids = `${data[0].id},${data[1].id}`;
-  console.log(`ids: ${ids}`);
-
-  for (let i = 0; i < 60; i++) {
-    const data = await getAudioInformation(ids);
-    if (data[0].status === "streaming") {
-      console.log(`${data[0].id} ==> ${data[0].audio_url}`);
-      console.log(`${data[1].id} ==> ${data[1].audio_url}`);
-      break;
-    }
-    // sleep 5s
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
-}
-
-main();
+```bash
+npm run dev
 ```
 
-## Integration with Custom Agents
+服务将在 http://localhost:3001 启动
 
-You can integrate Suno AI as a tool/plugin/action into your AI agent.
+### 4. 测试 API
 
-### Integration with GPTs
+```bash
+# 查看账户额度
+curl http://localhost:3001/api/get_limit
 
-[coming soon...]
+# 生成歌词
+curl -X POST http://localhost:3001/api/generate_lyrics \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "a happy song about sunshine"}'
 
-### Integration with Coze
+# 生成音乐
+curl -X POST http://localhost:3001/api/custom_generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "sunshine and rainbows",
+    "tags": "pop, upbeat",
+    "title": "Happy Day"
+  }'
+```
 
-[coming soon...]
+## 📚 API 文档
 
-### Integration with LangChain
+启动服务后访问：http://localhost:3001/docs
 
-[coming soon...]
+主要端点：
 
-## Contributing
+- `GET /api/get_limit` - 获取账户剩余额度
+- `POST /api/generate` - 生成音乐（简单模式）
+- `POST /api/custom_generate` - 生成音乐（自定义模式）
+- `POST /api/generate_lyrics` - 生成歌词
+- `GET /api/get?ids=xxx` - 获取音乐详情
+- `POST /api/extend_audio` - 延长音乐
 
-There are four ways you can support this project:
+完整 API 文档请参考：https://suno.gcui.ai/docs
 
-1. Fork and Submit Pull Requests: We welcome any PRs that enhance the functionality, APIs, response time and availability. You can also help us just by translating this README into your language—any help for this project is welcome!
-2. Open Issues: We appreciate reasonable suggestions and bug reports.
-3. Donate: If this project has helped you, consider buying us a coffee using the Sponsor button at the top of the project. Cheers! ☕
-4. Spread the Word: Recommend this project to others, star the repo, or add a backlink after using the project.
+## 🔧 配置说明
 
-## Questions, Suggestions, Issues, or Bugs?
+### 环境变量
 
-We use [GitHub Issues](https://github.com/gcui-art/suno-api/issues) to manage feedback. Feel free to open an issue, and we'll address it promptly.
+```bash
+# 必需
+SUNO_COOKIE=__session=<JWT_TOKEN>; __client=xxx; ...
 
-## License
+# 可选（CAPTCHA 解决方案）
+TWOCAPTCHA_KEY=your_2captcha_key
 
-The license of this project is LGPL-3.0 or later. See [LICENSE](LICENSE) for more information.
+# 可选（浏览器配置）
+BROWSER=chromium                    # chromium | firefox
+BROWSER_HEADLESS=true               # true | false
+BROWSER_LOCALE=zh-CN                # 浏览器语言
+BROWSER_GHOST_CURSOR=false          # 使用幽灵光标（更自然）
+BROWSER_DISABLE_GPU=false           # Docker 环境建议 true
+```
 
-## Related Links
+### JWT Token 有效期
 
-- Project repository: [github.com/gcui-art/suno-api](https://github.com/gcui-art/suno-api)
-- Suno.ai official website: [suno.ai](https://suno.ai)
-- Demo: [suno.gcui.ai](https://suno.gcui.ai)
-- [Readpo](https://readpo.com?utm_source=github&utm_medium=suno-api): ReadPo is an AI-powered reading and writing assistant. Collect, curate, and create content at lightning speed.
-- Album AI: [Auto generate image metadata and chat with the album. RAG + Album.](https://github.com/gcui-art/album-ai)
+JWT Token 通常有效期为 **几小时到几天**。Token 过期后会返回 401 错误，需要：
 
-## Statement
+1. 重新访问 https://suno.com/create
+2. 从 Network 请求中提取新的 JWT token
+3. 更新 `.env` 文件
 
-suno-api is an unofficial open source project, intended for learning and research purposes only.
+**提示**：可以设置定时任务自动更新 token（未来版本会支持自动刷新）。
+
+## ❓ 常见问题
+
+### Q: 为什么返回 401 Unauthorized？
+
+**A:** JWT Token 已过期或格式错误。请：
+1. 检查 `.env` 中的 `SUNO_COOKIE` 是否以 `__session=` 开头
+2. 确认 `__session=` 后面是从 Authorization header 提取的 JWT token（不是普通 cookie）
+3. 重新从浏览器提取最新的 JWT token
+
+### Q: 为什么 Clerk session 一直是空的？
+
+**A:** 这是正常现象。Suno 现在的认证机制已改变，不再依赖 Clerk session。本版本通过直接使用 JWT token 绕过了这个问题。
+
+### Q: JWT Token 在哪里？
+
+**A:** 在浏览器开发者工具的 Network 标签中：
+1. 找到任意 `studio-api.prod.suno.com` 的请求
+2. 查看 Request Headers
+3. 复制 `authorization: Bearer xxx` 中 `Bearer` 后面的部分
+
+### Q: Cookie 太长导致 431 错误怎么办？
+
+**A:** 这是因为包含了太多无关 cookies（Google、Facebook 等）。使用 `setup-cookie.js` 脚本会自动过滤，只保留 Suno 相关的 cookies。
+
+## 🐳 Docker 部署
+
+```bash
+# 构建镜像
+docker build -t suno-api .
+
+# 运行容器
+docker run -d -p 3001:3000 \
+  -e SUNO_COOKIE="__session=xxx; __client=xxx; ..." \
+  suno-api
+```
+
+## 📝 变更日志
+
+### v1.1.0 (2026-01-25)
+- ✨ 新增：支持直接使用 JWT Token 认证
+- ✨ 新增：`setup-cookie.js` 交互式配置脚本
+- 🐛 修复：Clerk session 为空导致的 401 错误
+- 🔒 增强：`.gitignore` 规则，防止敏感数据泄露
+- 📝 改进：详细的 README 和配置指南
+
+### v1.0.0
+- 🎉 Fork 自 [gcui-art/suno-api](https://github.com/gcui-art/suno-api)
+
+## 🤝 贡献
+
+欢迎 PR 和 Issue！主要改进方向：
+
+- [ ] 自动刷新 JWT token
+- [ ] 支持多账号轮询
+- [ ] 更友好的错误提示
+- [ ] Web 管理界面
+
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
+
+## 🙏 致谢
+
+- 原项目：[gcui-art/suno-api](https://github.com/gcui-art/suno-api)
+- [Suno AI](https://suno.ai) - 提供强大的音乐生成服务
+
+## ⚠️ 免责声明
+
+本项目仅供学习和研究使用。请遵守 Suno.ai 的服务条款，不要用于商业用途或滥用服务。
+
+---
+
+**如果这个项目对你有帮助，请给个 ⭐ Star！**
+
+问题反馈：https://github.com/joeseesun/suno-api-private/issues
