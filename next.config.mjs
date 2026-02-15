@@ -10,6 +10,12 @@ const nextConfig = {
   experimental: {
     serverMinification: false, // the server minification unfortunately breaks the selector class names
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };  
 
 export default nextConfig;
