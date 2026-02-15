@@ -121,31 +121,46 @@ class SunoApi {
       config.headers.Cookie = cookiesArray.join('; ');
       return config;
     });
-    this.client.interceptors.response.use(resp => {
-      const setCookieHeader = resp.headers['set-cookie'];
-      if (Array.isArray(setCookieHeader)) {
-        const newCookies = cookie.parse(setCookieHeader.join('; '));
-        for (const [key, value] of Object.entries(newCookies)) {
-          this.cookies[key] = value;
+    this.client.interceptors.response.use(
+      (resp) => resp,
+      async (error) => {
+        const status = error?.response?.status;
+
+        // If JWT got rejected, refresh and retry once
+        if (status === 401 && this.cookies.__client) {
+          logger.warn("401 from Suno. Refreshing JWT and retrying once...");
+
+          await this.getAuthToken();
+          await this.keepAlive(true);
+
+          // retry original request once
+          const cfg = error.config;
+          cfg.headers = cfg.headers || {};
+          cfg.headers.Authorization = `Bearer ${this.currentToken}`;
+          return this.client.request(cfg);
         }
+
+        throw error;
       }
-      this.persistCookieToDisk().catch(() => {});
-      return resp;
-    })
+    );
   }
 
   public async init(): Promise<SunoApi> {
-    //await this.getClerkLatestVersion();
-
-    // 如果 cookie 里已经有 __session（JWT token），直接使用
+    // If cookie already has a JWT, use it immediately
     if (this.cookies.__session && this.cookies.__session.length > 100) {
-      logger.info('Using existing __session token from cookies');
       this.currentToken = this.cookies.__session;
-      this.sid = 'dummy_session_id'; // 设置一个假的 sid 以绕过检查
-    } else {
-      await this.getAuthToken();
-      await this.keepAlive();
     }
+
+    // If we have __client, we can mint/renew JWTs via Clerk
+    if (this.cookies.__client) {
+      await this.getAuthToken();   // sets this.sid
+      await this.keepAlive(true);  // sets this.currentToken = fresh jwt
+    }
+
+    if (!this.currentToken) {
+      throw new Error("Missing auth. SUNO_COOKIE must include __session and ideally __client for auto-refresh.");
+    }
+
     return this;
   }
 
@@ -197,12 +212,6 @@ class SunoApi {
       throw new Error('Session ID is not set. Cannot renew token.');
     }
 
-    // 如果使用的是直接提供的 __session token，跳过 renew
-    if (this.sid === 'dummy_session_id') {
-      logger.info('Using direct JWT token, skipping keepAlive');
-      return;
-    }
-
     // URL to renew session token
     const renewUrl = `${SunoApi.CLERK_BASE_URL}/v1/client/sessions/${this.sid}/tokens?_is_native=true&_clerk_js_version=${SunoApi.CLERK_VERSION}`;
     // Renew session token
@@ -217,6 +226,7 @@ class SunoApi {
     // Update Authorization field in request header with the new JWT token
     this.currentToken = newToken;
 
+    this.cookies.__session = newToken;
     await this.persistCookieToDisk();
   }
 
