@@ -12,6 +12,7 @@ import { createCursor, Cursor } from 'ghost-cursor-playwright';
 import { promises as fs } from 'fs';
 import path from 'node:path';
 import { readTokenState } from "@/lib/sunoTokenStore";
+import { writeTokenState } from "@/lib/sunoTokenStore";
 
 // sunoApi instance caching
 const globalForSunoApi = global as unknown as { sunoApiCache?: Map<string, SunoApi> };
@@ -128,6 +129,7 @@ class SunoApi {
           this.cookies[key] = value;
         }
       }
+      this.persistCookieToDisk().catch(() => {});
       return resp;
     })
   }
@@ -214,6 +216,8 @@ class SunoApi {
     const newToken = renewResponse.data.jwt;
     // Update Authorization field in request header with the new JWT token
     this.currentToken = newToken;
+
+    await this.persistCookieToDisk();
   }
 
   /**
@@ -912,6 +916,27 @@ class SunoApi {
 
     return response.data;
   }
+
+  private async persistCookieToDisk(): Promise<void> {
+    try {
+      const cookieHeader = Object.entries(this.cookies)
+        .filter(([_, v]) => typeof v === "string" && v.length > 0)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("; ");
+
+      if (!cookieHeader) return;
+
+      await writeTokenState({
+        cookie: cookieHeader,
+        updatedAt: new Date().toISOString(),
+      });
+
+      logger.info("Saved refreshed Suno cookie to /data");
+    } catch (e: any) {
+      logger.warn({ err: e?.message || e }, "Failed to persist Suno cookie");
+    }
+  }
+
 }
 
 export const sunoApi = async (cookie?: string) => {
