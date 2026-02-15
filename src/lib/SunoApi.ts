@@ -94,6 +94,7 @@ class SunoApi {
   private solver = new Solver(process.env.TWOCAPTCHA_KEY + '');
   private ghostCursorEnabled = yn(process.env.BROWSER_GHOST_CURSOR, { default: false });
   private cursor?: Cursor;
+  private refreshInterval?: NodeJS.Timeout;
 
   constructor(cookies: string) {
     this.userAgent = new UserAgent(/Macintosh/).random().toString(); // Usually Mac systems get less amount of CAPTCHAs
@@ -162,6 +163,21 @@ class SunoApi {
     }
 
     return this;
+  }
+
+  public startAutoRefresh() {
+    // Prevent duplicate intervals (important when caching)
+    if (this.refreshInterval) return;
+
+    this.refreshInterval = setInterval(async () => {
+      try {
+        await this.getAuthToken();
+        await this.keepAlive(true);
+        logger.info('Proactively refreshed Suno token');
+      } catch (e: any) {
+        logger.error({ err: e?.message || e }, 'Background refresh failed');
+      }
+    }, 1000 * 60 * 20); // every 20 minutes
   }
 
   /**
@@ -981,7 +997,7 @@ export const sunoApi = async (cookie?: string) => {
   if (cachedInstance) return cachedInstance;
 
   const instance = await new SunoApi(resolvedCookie).init();
+  instance.startAutoRefresh(); // ✅ here
   cache.set(resolvedCookie, instance);
-
   return instance;
 };
