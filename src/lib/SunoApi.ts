@@ -11,6 +11,7 @@ import { BrowserContext, Page, Locator, chromium, firefox } from 'rebrowser-play
 import { createCursor, Cursor } from 'ghost-cursor-playwright';
 import { promises as fs } from 'fs';
 import path from 'node:path';
+import { readTokenState } from "@/lib/sunoTokenStore";
 
 // sunoApi instance caching
 const globalForSunoApi = global as unknown as { sunoApiCache?: Map<string, SunoApi> };
@@ -914,20 +915,37 @@ class SunoApi {
 }
 
 export const sunoApi = async (cookie?: string) => {
-  const resolvedCookie = cookie && cookie.includes('__client') ? cookie : process.env.SUNO_COOKIE; // Check for bad `Cookie` header (It's too expensive to actually parse the cookies *here*)
-  if (!resolvedCookie) {
-    logger.info('No cookie provided! Aborting...\nPlease provide a cookie either in the .env file or in the Cookie header of your request.')
-    throw new Error('Please provide a cookie either in the .env file or in the Cookie header of your request.');
+  let resolvedCookie: string | undefined;
+
+  // 1) If caller supplied a real cookie header, trust it
+  if (cookie && cookie.includes("__client")) {
+    resolvedCookie = cookie;
+  } else {
+    // 2) Try loading the latest refreshed cookie from disk
+    const stored = await readTokenState();
+    if (stored?.cookie) {
+      logger.info("Using saved Suno session from /data");
+      resolvedCookie = stored.cookie;
+    } else {
+      // 3) Fallback to env (Fly secret)
+      resolvedCookie = process.env.SUNO_COOKIE;
+    }
   }
 
-  // Check if the instance for this cookie already exists in the cache
-  const cachedInstance = cache.get(resolvedCookie);
-  if (cachedInstance)
-    return cachedInstance;
+  if (!resolvedCookie) {
+    logger.info(
+      "No cookie provided! Aborting...\nPlease provide a cookie either in the .env file or in the Cookie header of your request."
+    );
+    throw new Error(
+      "Please provide a cookie either in the .env file or in the Cookie header of your request."
+    );
+  }
 
-  // If not, create a new instance and initialize it
+  // Cache lookup
+  const cachedInstance = cache.get(resolvedCookie);
+  if (cachedInstance) return cachedInstance;
+
   const instance = await new SunoApi(resolvedCookie).init();
-  // Cache the initialized instance
   cache.set(resolvedCookie, instance);
 
   return instance;
